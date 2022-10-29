@@ -12,7 +12,7 @@ framebuffer_t fb;
 zbuffer_t zb;
 void init_gs(void)
 {
-	*(u64 *)0x10003000 = 1;
+	*(u64*)0x10003000 = 1;
 	fb.width = 640;
 	fb.height = 448;
 	fb.psm = GS_PSM_32;
@@ -29,15 +29,15 @@ void init_gs(void)
 
 	graph_wait_vsync();
 
-	qword_t *init_data = (qword_t *)aligned_alloc(64, sizeof(qword_t) * 30);
-	qword_t *q = init_data;
+	qword_t* init_data = (qword_t*)aligned_alloc(64, sizeof(qword_t) * 30);
+	qword_t* q = init_data;
 
 	q = draw_setup_environment(q, 0, &fb, &zb);
 	q = draw_primitive_xyoffset(q, 0, 0, 0);
 	q = draw_disable_tests(q, 0, &zb);
 
 	PACK_GIFTAG(q, GIF_SET_TAG(1, 1, GIF_PRE_ENABLE, GIF_PRIM_SPRITE, GIF_FLG_PACKED, 4),
-				GIF_REG_RGBAQ | (GIF_REG_XYZ2 << 4) | (GIF_REG_XYZ2 << 8) | (GIF_REG_AD << 12));
+		GIF_REG_RGBAQ | (GIF_REG_XYZ2 << 4) | (GIF_REG_XYZ2 << 8) | (GIF_REG_AD << 12));
 	q++;
 	// RGBAQ
 	q->dw[0] = (u64)((0x00) | ((u64)0x00 << 32));
@@ -63,7 +63,7 @@ void init_gs(void)
 
 void uploadCLUT()
 {
-	u32 *PAL = aligned_alloc(64, sizeof(u32) * 256);
+	u32* PAL = aligned_alloc(64, sizeof(u32) * 256);
 	for (int i = 0; i < 256; i++)
 	{
 		PAL[i] = (i << 24) | (i << 16) | (i << 8) | (i << 0);
@@ -71,7 +71,7 @@ void uploadCLUT()
 	FlushCache(0);
 
 	qword_t transfer_chain[30] ALIGNED(64);
-	qword_t *q = transfer_chain;
+	qword_t* q = transfer_chain;
 
 	q = draw_texture_transfer(q, PAL, 16, 16, GS_PSM_32, 0, 256);
 	q = draw_texture_flush(q);
@@ -83,17 +83,17 @@ void uploadCLUT()
 
 void drawFlatSprite()
 {
-	qword_t *draw_packet = aligned_alloc(64, sizeof(qword_t) * 50);
-	qword_t *q = draw_packet;
+	qword_t* draw_packet = aligned_alloc(64, sizeof(qword_t) * 50);
+	qword_t* q = draw_packet;
 
 	// Draw two gouraud shaded triangles
 
-	PACK_GIFTAG(q, GIF_SET_TAG(6, 1, GIF_PRE_ENABLE, GIF_SET_PRIM(GIF_PRIM_TRIANGLE, 1, 0, 0, 0, 0, 0, 0, 0), GIF_FLG_PACKED, 2),
-				GIF_REG_RGBAQ | (GIF_REG_XYZ2 << 4));
+	PACK_GIFTAG(q, GIF_SET_TAG(6, 1, GIF_PRE_ENABLE, GIF_SET_PRIM(GIF_PRIM_TRIANGLE, 0, 0, 0, 0, 0, 0, 0, 0), GIF_FLG_PACKED, 2),
+		GIF_REG_RGBAQ | (GIF_REG_XYZ2 << 4));
 	q++;
 	{
 		// RGBAQ
-		q->dw[0] = (u64)((0xFF) | ((u64)0x00 << 32));
+		q->dw[0] = (u64)((0x00) | ((u64)0xFF << 32));
 		q->dw[1] = (u64)((0x00) | ((u64)0xFF << 32));
 		q++;
 		// XYZ2
@@ -109,7 +109,7 @@ void drawFlatSprite()
 		q->dw[1] = (u64)(1);
 		q++;
 		// RGBAQ
-		q->dw[0] = (u64)((0x00) | ((u64)0x00 << 32));
+		q->dw[0] = (u64)((0x00) | ((u64)0xFF << 32));
 		q->dw[1] = (u64)((0xFF) | ((u64)0x00 << 32));
 		q++;
 		// XYZ2
@@ -144,8 +144,8 @@ void drawFlatSprite()
 		q++;
 	}
 
-	/*
 
+	/*
 PACK_GIFTAG(q, GIF_SET_TAG(1, 1, GIF_PRE_ENABLE, GIF_PRIM_SPRITE, GIF_FLG_PACKED, 3),
 			GIF_REG_RGBAQ | (GIF_REG_XYZ2 << 4) | (GIF_REG_XYZ2 << 8));
 q++;
@@ -180,8 +180,8 @@ typedef enum
 // Channel copy a block
 void performChannelCopy(ColourChannels channelIn, ColourChannels channelOut, u32 blockX, u32 blockY, u32 source)
 {
-	qword_t *copy_packet = aligned_alloc(64, sizeof(qword_t) * 500);
-	qword_t *q = copy_packet;
+	qword_t* copy_packet = aligned_alloc(64, sizeof(qword_t) * 500);
+	qword_t* q = copy_packet;
 
 	q = copy_packet;
 
@@ -190,16 +190,17 @@ void performChannelCopy(ColourChannels channelIn, ColourChannels channelOut, u32
 	// For the GREEN and ALPHA channels, we need to offset our 'T's by 2 texels
 	const u32 vert_block_offset = (channelIn == CHANNEL_GREEN || channelIn == CHANNEL_ALPHA);
 
-	const u32 clamp_max = horz_block_offset ? 8 : 0;
+	const u32 clamp_horz = horz_block_offset ? 8 : 0;
+	const u32 clamp_vert = vert_block_offset ? 2 : 0;
 	PACK_GIFTAG(q, GIF_SET_TAG(4, 1, GIF_PRE_DISABLE, 0, GIF_FLG_PACKED, 1),
-				(GIF_REG_AD));
+		(GIF_REG_AD));
 	q++;
 	// TEX0
 	q->dw[0] = GS_SET_TEX0((source >> 6), 2, GS_PSM_8, 10, 10, 1, 1, 0, GS_PSM_32, 0, 0, 1);
 	q->dw[1] = GS_REG_TEX0;
 	q++;
 	// CLAMP
-	q->dw[0] = GS_SET_CLAMP(3, 0, 0xf7, clamp_max, 0, 0);
+	q->dw[0] = GS_SET_CLAMP(3, 3, 0xF7, clamp_horz, 0xFD, clamp_vert);
 	q->dw[1] = GS_REG_CLAMP;
 	q++;
 	// TEXFLUSH
@@ -209,18 +210,18 @@ void performChannelCopy(ColourChannels channelIn, ColourChannels channelOut, u32
 	u32 frame_mask;
 	switch (channelOut)
 	{
-	case CHANNEL_RED:
-		frame_mask = ~0x000000FF;
-		break;
-	case CHANNEL_GREEN:
-		frame_mask = ~0x0000FF00;
-		break;
-	case CHANNEL_BLUE:
-		frame_mask = ~0x00FF0000;
-		break;
-	case CHANNEL_ALPHA:
-		frame_mask = ~0xFF000000;
-		break;
+		case CHANNEL_RED:
+			frame_mask = ~0x000000FF;
+			break;
+		case CHANNEL_GREEN:
+			frame_mask = ~0x0000FF00;
+			break;
+		case CHANNEL_BLUE:
+			frame_mask = ~0x00FF0000;
+			break;
+		case CHANNEL_ALPHA:
+			frame_mask = ~0xFF000000;
+			break;
 	}
 	// FRAME
 	q->dw[0] = GS_SET_FRAME(0, 10, 0, frame_mask);
@@ -228,27 +229,16 @@ void performChannelCopy(ColourChannels channelIn, ColourChannels channelOut, u32
 	q++;
 
 	PACK_GIFTAG(q, GIF_SET_TAG(96, 1, GIF_PRE_ENABLE, GIF_SET_PRIM(GS_PRIM_SPRITE, 0, 1, 0, 0, 0, 1, 0, 0), GIF_FLG_PACKED, 4),
-				(GIF_REG_UV) | (GIF_REG_XYZ2 << 4) | (GIF_REG_UV << 8) | (GIF_REG_XYZ2 << 12));
+		(GIF_REG_UV) | (GIF_REG_XYZ2 << 4) | (GIF_REG_UV << 8) | (GIF_REG_XYZ2 << 12));
 	q++;
 	for (int y = 0; y < 32; y += 2)
 	{
-		// The Even and Odd column formats flip the order of
-		// green and alpha compared to red and green
-		u32 EVEN_BLOCK;
-		EVEN_BLOCK = (y % 4) == 0;
-
-		if (vert_block_offset)
-		{
-			EVEN_BLOCK = !EVEN_BLOCK;
-		}
-
-		if (EVEN_BLOCK) // Even (4 16x2 sprites)
+		if ((y % 4) == 0) // Even (4 16x2 sprites)
 		{
 			for (int x = 0; x < 64; x += 16)
 			{
-				const u32 column_U = x * 2;
 				// UV
-				q->dw[0] = GS_SET_ST(8 + ((8 + column_U) << 4), 8 + (((vert_block_offset * 2) + y * 2) << 4));
+				q->dw[0] = GS_SET_ST(8 + ((8 + x * 2) << 4), 8 + ((y * 2) << 4));
 				q->dw[1] = 0;
 				q++;
 				// XYZ2
@@ -256,7 +246,7 @@ void performChannelCopy(ColourChannels channelIn, ColourChannels channelOut, u32
 				q->dw[1] = (u64)(1);
 				q++;
 				// UV
-				q->dw[0] = GS_SET_ST(8 + ((24 + column_U) << 4), 8 + ((2 + (vert_block_offset * 2) + y * 2) << 4));
+				q->dw[0] = GS_SET_ST(8 + ((24 + x * 2) << 4), 8 + ((2 + y * 2) << 4));
 				q->dw[1] = 0;
 				q++;
 				// XYZ2
@@ -269,9 +259,8 @@ void performChannelCopy(ColourChannels channelIn, ColourChannels channelOut, u32
 		{
 			for (int x = 0; x < 64; x += 8)
 			{
-				const u32 column_U = x * 2;
 				// UV
-				q->dw[0] = GS_SET_ST(8 + ((4 + column_U) << 4), 8 + (((vert_block_offset * 2) + y * 2) << 4));
+				q->dw[0] = GS_SET_ST(8 + ((4 + x * 2) << 4), 8 + ((y * 2) << 4));
 				q->dw[1] = 0;
 				q++;
 				// XYZ2
@@ -279,7 +268,7 @@ void performChannelCopy(ColourChannels channelIn, ColourChannels channelOut, u32
 				q->dw[1] = (u64)(1);
 				q++;
 				// UV
-				q->dw[0] = GS_SET_ST(8 + ((12 + column_U) << 4), 8 + ((2 + (vert_block_offset * 2) + y * 2) << 4));
+				q->dw[0] = GS_SET_ST(8 + ((12 + x * 2) << 4), 8 + ((2 + y * 2) << 4));
 				q->dw[1] = 0;
 				q++;
 				// XYZ2
@@ -295,7 +284,7 @@ void performChannelCopy(ColourChannels channelIn, ColourChannels channelOut, u32
 
 	q = copy_packet;
 	PACK_GIFTAG(q, GIF_SET_TAG(1, 1, GIF_PRE_DISABLE, 0, GIF_FLG_PACKED, 1),
-				(GIF_REG_AD));
+		(GIF_REG_AD));
 	q++;
 	// FRAME
 	q->dw[0] = GS_SET_FRAME(0, 10, 0, 0x00);
