@@ -88,12 +88,12 @@ void drawFlatSprite()
 
 	// Draw two gouraud shaded triangles
 
-	PACK_GIFTAG(q, GIF_SET_TAG(6, 1, GIF_PRE_ENABLE, GIF_SET_PRIM(GIF_PRIM_TRIANGLE, 0, 0, 0, 0, 0, 0, 0, 0), GIF_FLG_PACKED, 2),
+	PACK_GIFTAG(q, GIF_SET_TAG(6, 1, GIF_PRE_ENABLE, GIF_SET_PRIM(GIF_PRIM_TRIANGLE, 1, 0, 0, 0, 0, 0, 0, 0), GIF_FLG_PACKED, 2),
 		GIF_REG_RGBAQ | (GIF_REG_XYZ2 << 4));
 	q++;
 	{
 		// RGBAQ
-		q->dw[0] = (u64)((0x00) | ((u64)0xFF << 32));
+		q->dw[0] = (u64)((0xFF) | ((u64)0x00 << 32));
 		q->dw[1] = (u64)((0x00) | ((u64)0xFF << 32));
 		q++;
 		// XYZ2
@@ -109,7 +109,7 @@ void drawFlatSprite()
 		q->dw[1] = (u64)(1);
 		q++;
 		// RGBAQ
-		q->dw[0] = (u64)((0x00) | ((u64)0xFF << 32));
+		q->dw[0] = (u64)((0x00) | ((u64)0x00 << 32));
 		q->dw[1] = (u64)((0xFF) | ((u64)0x00 << 32));
 		q++;
 		// XYZ2
@@ -233,7 +233,7 @@ void performChannelCopy(ColourChannels channelIn, ColourChannels channelOut, u32
 	q++;
 	for (int y = 0; y < 32; y += 2)
 	{
-		if ((y % 4) == 0) // Even (4 16x2 sprites)
+		if (((y % 4) == 0) ^ (vert_block_offset == 1)) // Even (4 16x2 sprites)
 		{
 			for (int x = 0; x < 64; x += 16)
 			{
@@ -242,7 +242,7 @@ void performChannelCopy(ColourChannels channelIn, ColourChannels channelOut, u32
 				q->dw[1] = 0;
 				q++;
 				// XYZ2
-				q->dw[0] = (u64)(((((x + blockX) << 4)) | (((u64)((y + blockY) << 4)) << 32)));
+				q->dw[0] = (u64)((x + blockX) << 4) | ((u64)((y + blockY) << 4) << 32);
 				q->dw[1] = (u64)(1);
 				q++;
 				// UV
@@ -250,7 +250,7 @@ void performChannelCopy(ColourChannels channelIn, ColourChannels channelOut, u32
 				q->dw[1] = 0;
 				q++;
 				// XYZ2
-				q->dw[0] = (u64)(((((x + 16 + blockX) << 4)) | (((u64)((y + 2 + blockY) << 4)) << 32)));
+				q->dw[0] = (u64)((x + 16 + blockX) << 4) | ((u64)((y + 2 + blockY) << 4) << 32);
 				q->dw[1] = (u64)(1);
 				q++;
 			}
@@ -264,7 +264,7 @@ void performChannelCopy(ColourChannels channelIn, ColourChannels channelOut, u32
 				q->dw[1] = 0;
 				q++;
 				// XYZ2
-				q->dw[0] = (u64)(((((x + blockX) << 4)) | (((u64)((y + blockY) << 4)) << 32)));
+				q->dw[0] = (u64)((x + blockX) << 4) | ((u64)((y + blockY) << 4) << 32);
 				q->dw[1] = (u64)(1);
 				q++;
 				// UV
@@ -272,7 +272,7 @@ void performChannelCopy(ColourChannels channelIn, ColourChannels channelOut, u32
 				q->dw[1] = 0;
 				q++;
 				// XYZ2
-				q->dw[0] = (u64)(((((x + 8 + blockX) << 4)) | (((u64)((y + 2 + blockY) << 4)) << 32)));
+				q->dw[0] = (u64)((x + 8 + blockX) << 4) | ((u64)((y + 2 + blockY) << 4) << 32);
 				q->dw[1] = (u64)(1);
 				q++;
 			}
@@ -309,7 +309,7 @@ int main(void)
 		{
 			downloaded_frame = 1;
 			dma_channel_wait(DMA_CHANNEL_GIF, 0);
-			download_from_gs(fb.address, GS_PSM_24, "host:8bitcopy.raw", 24, 640, 448);
+			download_from_gs(fb.address, GS_PSM_24, "host:8bitcopy.data", 24, 640, 448);
 		}
 		uploadCLUT();
 		drawFlatSprite();
