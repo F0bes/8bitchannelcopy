@@ -305,13 +305,13 @@ int main(void)
 	while (1)
 	{
 		frame_count++;
-		if (downloaded_frame == 0 && frame_count == 200)
+/*		if (downloaded_frame == 0 && frame_count == 200)
 		{
 			downloaded_frame = 1;
 			dma_channel_wait(DMA_CHANNEL_GIF, 0);
 			download_from_gs(fb.address, GS_PSM_24, "host:8bitcopy.data", 24, 640, 448);
 		}
-		uploadCLUT();
+*/		uploadCLUT();
 		drawFlatSprite();
 		performChannelCopy(CHANNEL_RED, CHANNEL_RED, 128, 0, 2048);
 		performChannelCopy(CHANNEL_GREEN, CHANNEL_GREEN, 128, 32, 2048);
